@@ -70,25 +70,35 @@
                 </div>
 
                 <div class="glass-panel p-4 sm:p-6">
-                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-sky-400">2. Envíos Extra de Marketing (Campañas)</h2>
-                    <p class="text-xs text-slate-400 mb-4">¿Cuántos mensajes masivos enviará el cliente fuera de su cuota de IA?</p>
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-sky-400">2. Envíos Extra de Plantillas (Marketing, Utilidad, etc.)</h2>
+                    <p class="text-xs text-slate-400 mb-4">¿Cuántos mensajes enviará el cliente fuera de su cuota de IA?</p>
                     
                     <div class="mb-4">
-                        <label class="block text-sm font-semibold mb-2" id="mensajesMktLabel">0 Mensajes de Marketing</label>
+                        <label class="block text-xs text-slate-400 mb-2">Tipo de Plantilla WhatsApp</label>
+                        <select id="tipoPlantilla" onchange="updateTemplateType()">
+                            <option value="marketing" data-cost="0.075" data-price="0.085" selected>Marketing (Promociones, Ofertas)</option>
+                            <option value="utility" data-cost="0.035" data-price="0.045">Utilidad (Actualizaciones, Notificaciones)</option>
+                            <option value="authentication" data-cost="0.03" data-price="0.04">Autenticación (OTPs, Códigos)</option>
+                            <option value="service" data-cost="0.0" data-price="0.0">Servicio (Conversaciones 24h, Gratis)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold mb-2" id="mensajesMktLabel">0 Plantillas de Marketing</label>
                         <input type="range" id="usoMktSlider" min="0" max="50000" step="100" value="0" class="w-full" oninput="updateMktSlider()">
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-xs text-slate-400 mb-2">¿Cómo se le cobran al cliente?</label>
                         <select id="estrategiaCobro" onchange="calculate()">
-                            <option value="extra" selected>Se facturan extra (Tarifa oficial $0.085 c/u)</option>
+                            <option value="extra" id="opcionExtraCobro" selected>Se facturan extra (Tarifa oficial $0.085 c/u)</option>
                             <option value="incluido">Se los regalo (Asumo yo el costo Meta)</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="glass-panel p-4 sm:p-6">
-                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-orange-400">3. Costos Internos Reales</h2>
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-orange-400">3. Costos Internos (Por Mensaje)</h2>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div>
@@ -97,7 +107,7 @@
                             <span class="text-[10px] text-slate-500">Gupshup + GPT-4.1 Mini</span>
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">Costo Mkt (Ecuador)</label>
+                            <label class="block text-xs text-slate-400 mb-1">Costo Meta (Plantilla)</label>
                             <input type="number" id="costoMkt" value="0.075" step="0.001" oninput="calculate()">
                             <span class="text-[10px] text-slate-500">Meta + Gupshup</span>
                         </div>
@@ -162,8 +172,30 @@
 
         function updateMktSlider() {
             const val = document.getElementById('usoMktSlider').value;
-            document.getElementById('mensajesMktLabel').innerText = `${parseInt(val).toLocaleString()} Mensajes de Marketing`;
+            const select = document.getElementById('tipoPlantilla');
+            const tipo = select ? select.options[select.selectedIndex].text.split(' ')[0] : 'Marketing';
+            document.getElementById('mensajesMktLabel').innerText = `${parseInt(val).toLocaleString()} Plantillas de ${tipo}`;
             calculate();
+        }
+
+        function updateTemplateType() {
+            const select = document.getElementById('tipoPlantilla');
+            const option = select.options[select.selectedIndex];
+            const costoInterno = option.getAttribute('data-cost');
+            const precioVenta = option.getAttribute('data-price');
+
+            // Actualizar costo interno (Por Mensaje)
+            document.getElementById('costoMkt').value = costoInterno;
+
+            // Actualizar el texto del select de cobro
+            const textoCobro = parseFloat(precioVenta) === 0 ? 
+                'Gratis (Sin costo oficial)' : 
+                `Se facturan extra (Tarifa oficial $${precioVenta} c/u)`;
+            
+            document.getElementById('opcionExtraCobro').innerText = textoCobro;
+            
+            // Actualizar etiqueta del slider
+            updateMktSlider();
         }
 
         function formatMoney(num) {
@@ -185,7 +217,10 @@
 
             let ingresosExtra = 0;
             if (estrategia === 'extra') {
-                ingresosExtra = msgsMkt * 0.085; // Tarifa oficial extra
+                const selectTpl = document.getElementById('tipoPlantilla');
+                const optTpl = selectTpl ? selectTpl.options[selectTpl.selectedIndex] : null;
+                const tarifaExtra = optTpl ? parseFloat(optTpl.getAttribute('data-price')) : 0.085;
+                ingresosExtra = msgsMkt * tarifaExtra;
             }
 
             const ingresosTotales = precioBase + ingresosExtra;
@@ -240,7 +275,7 @@
                             borderRadius: 6
                         },
                         {
-                            label: 'Costo Meta (Marketing)',
+                            label: 'Costo Meta (Plantillas)',
                             data: [costoMkt],
                             backgroundColor: 'rgba(244, 63, 94, 0.9)',
                             borderRadius: 6
