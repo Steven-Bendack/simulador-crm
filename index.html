@@ -75,7 +75,7 @@
 
                     <div class="mb-4">
                         <label class="block text-sm font-semibold mb-2" id="mensajesMktLabel">0 Plantillas</label>
-                        <input type="range" id="usoMktSlider" min="0" max="50000" step="100" value="0" class="w-full" oninput="updateMktSlider()">
+                        <input type="range" id="usoPlantillasSlider" min="0" max="50000" step="100" value="0" class="w-full" oninput="updateMktSlider()">
                     </div>
 
                     <div class="mb-4">
@@ -101,7 +101,7 @@
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Costo por mensaje (Plantilla)</label>
-                            <input type="number" id="costoMkt" value="0.075" step="0.001" oninput="calculate()">
+                            <input type="number" id="costoPlantilla" value="0.075" step="0.001" oninput="calculate()">
                             <span class="text-[10px] text-slate-500">Meta + Gupshup</span>
                         </div>
                     </div>
@@ -164,7 +164,7 @@
         }
 
         function updateMktSlider() {
-            const val = document.getElementById('usoMktSlider').value;
+            const val = document.getElementById('usoPlantillasSlider').value;
             const select = document.getElementById('estrategiaCobro');
             
             let tipo = 'Plantillas';
@@ -182,7 +182,7 @@
             if (selectCobro.value !== 'incluido') {
                 const optCobro = selectCobro.options[selectCobro.selectedIndex];
                 const costoInterno = parseFloat(optCobro.getAttribute('data-cost')) || 0;
-                document.getElementById('costoMkt').value = costoInterno;
+                document.getElementById('costoPlantilla').value = costoInterno;
             }
             updateMktSlider();
         }
@@ -192,111 +192,130 @@
         }
 
         function calculate() {
-            const msgsChatbot = parseFloat(document.getElementById('totalInteracciones').value) || 0;
-            const precioBase = parseFloat(document.getElementById('precioCobrado').value) || 0;
-            const msgsMkt = parseFloat(document.getElementById('usoMktSlider').value) || 0;
-            const costoMktUni = parseFloat(document.getElementById('costoMkt').value) || 0;
-            const costoChatbotUni = parseFloat(document.getElementById('costoChatbot').value) || 0;
+            try {
+                const eChatbot = document.getElementById('totalInteracciones');
+                const ePrecio = document.getElementById('precioCobrado');
+                const eSlider = document.getElementById('usoPlantillasSlider');
+                const eCostoMkt = document.getElementById('costoPlantilla');
+                const eCostoChatbot = document.getElementById('costoChatbot');
+                
+                if (!eChatbot || !ePrecio || !eSlider || !eCostoMkt || !eCostoChatbot) {
+                    throw new Error("Falta un elemento HTML en el DOM");
+                }
 
-            const costoChatbotTot = msgsChatbot * costoChatbotUni;
-            const costoMktTot = msgsMkt * costoMktUni;
-            const costosTotales = costoChatbotTot + costoMktTot;
+                const msgsChatbot = parseFloat(eChatbot.value) || 0;
+                const precioBase = parseFloat(ePrecio.value) || 0;
+                const msgsMkt = parseFloat(eSlider.value) || 0;
+                const costoMktUni = parseFloat(eCostoMkt.value) || 0;
+                const costoChatbotUni = parseFloat(eCostoChatbot.value) || 0;
 
-            let ingresosExtra = 0;
-            const selectCobro = document.getElementById('estrategiaCobro');
-            const estrategia = selectCobro.value;
-            
-            if (estrategia !== 'incluido') {
-                const optCobro = selectCobro.options[selectCobro.selectedIndex];
-                const tarifaExtra = parseFloat(optCobro.getAttribute('data-price')) || 0;
-                ingresosExtra = msgsMkt * tarifaExtra;
+                const costoChatbotTot = msgsChatbot * costoChatbotUni;
+                const costoMktTot = msgsMkt * costoMktUni;
+                const costosTotales = costoChatbotTot + costoMktTot;
+
+                let ingresosExtra = 0;
+                const selectCobro = document.getElementById('estrategiaCobro');
+                const estrategia = selectCobro.value;
+                
+                if (estrategia !== 'incluido') {
+                    const optCobro = selectCobro.options[selectCobro.selectedIndex];
+                    const tarifaExtra = parseFloat(optCobro.getAttribute('data-price')) || 0;
+                    ingresosExtra = msgsMkt * tarifaExtra;
+                }
+
+                const ingresosTotales = precioBase + ingresosExtra;
+                const ganancia = ingresosTotales - costosTotales;
+                const margen = ingresosTotales > 0 ? (ganancia / ingresosTotales) * 100 : 0;
+
+                // Actualizar UI
+                document.getElementById('resIngresos').innerText = formatMoney(ingresosTotales);
+                document.getElementById('resIngresosDetalle').innerText = `Plan: ${formatMoney(precioBase)} | Extras: ${formatMoney(ingresosExtra)}`;
+                
+                document.getElementById('resCostos').innerText = formatMoney(costosTotales);
+                document.getElementById('resCostosDetalle').innerText = `IA: ${formatMoney(costoChatbotTot)} | Meta: ${formatMoney(costoMktTot)}`;
+                
+                const eGanancia = document.getElementById('resGanancia');
+                const eMargen = document.getElementById('resMargen');
+                eGanancia.innerText = formatMoney(ganancia);
+                eMargen.innerText = `Margen: ${margen.toFixed(1)}%`;
+
+                if (ganancia >= 0) {
+                    eGanancia.classList.replace('text-rose-400', 'text-emerald-400');
+                    eMargen.classList.replace('text-rose-400', 'text-emerald-400');
+                } else {
+                    eGanancia.classList.replace('text-emerald-400', 'text-rose-400');
+                    eMargen.classList.replace('text-emerald-400', 'text-rose-400');
+                }
+
+                updateChart(ingresosTotales, costoChatbotTot, costoMktTot, ganancia);
+            } catch (error) {
+                console.error(error);
+                alert("Error calculando: " + error.message);
             }
-
-            const ingresosTotales = precioBase + ingresosExtra;
-            const ganancia = ingresosTotales - costosTotales;
-            const margen = ingresosTotales > 0 ? (ganancia / ingresosTotales) * 100 : 0;
-
-            // Actualizar UI
-            document.getElementById('resIngresos').innerText = formatMoney(ingresosTotales);
-            document.getElementById('resIngresosDetalle').innerText = `Plan: ${formatMoney(precioBase)} | Extras: ${formatMoney(ingresosExtra)}`;
-            
-            document.getElementById('resCostos').innerText = formatMoney(costosTotales);
-            document.getElementById('resCostosDetalle').innerText = `IA: ${formatMoney(costoChatbotTot)} | Meta: ${formatMoney(costoMktTot)}`;
-            
-            const eGanancia = document.getElementById('resGanancia');
-            const eMargen = document.getElementById('resMargen');
-            eGanancia.innerText = formatMoney(ganancia);
-            eMargen.innerText = `Margen: ${margen.toFixed(1)}%`;
-
-            if (ganancia >= 0) {
-                eGanancia.classList.replace('text-rose-400', 'text-emerald-400');
-                eMargen.classList.replace('text-rose-400', 'text-emerald-400');
-            } else {
-                eGanancia.classList.replace('text-emerald-400', 'text-rose-400');
-                eMargen.classList.replace('text-emerald-400', 'text-rose-400');
-            }
-
-            updateChart(ingresosTotales, costoChatbotTot, costoMktTot, ganancia);
         }
 
         function updateChart(ingresos, costoChatbot, costoMkt, ganancia) {
-            const ctx = document.getElementById('profitChart').getContext('2d');
-            
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
+            try {
+                const ctx = document.getElementById('profitChart').getContext('2d');
+                
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
 
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Suscripción y Gastos del Cliente'],
-                    datasets: [
-                        {
-                            label: 'Ingresos Cobrados',
-                            data: [ingresos],
-                            backgroundColor: 'rgba(56, 189, 248, 0.8)',
-                            borderRadius: 6
-                        },
-                        {
-                            label: 'Costo IA (Gupshup+Gemini)',
-                            data: [costoChatbot],
-                            backgroundColor: 'rgba(168, 85, 247, 0.8)',
-                            borderRadius: 6
-                        },
-                        {
-                            label: 'Costo Meta (Plantillas)',
-                            data: [costoMkt],
-                            backgroundColor: 'rgba(244, 63, 94, 0.9)',
-                            borderRadius: 6
-                        },
-                        {
-                            label: 'Ganancia Limpia',
-                            data: [Math.max(0, ganancia)],
-                            backgroundColor: ganancia >= 0 ? 'rgba(52, 211, 153, 0.8)' : 'rgba(244, 63, 94, 0.8)',
-                            borderRadius: 6
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { labels: { color: '#cbd5e1' } },
-                        tooltip: { mode: 'index', intersect: false }
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Suscripción y Gastos del Cliente'],
+                        datasets: [
+                            {
+                                label: 'Ingresos Cobrados',
+                                data: [ingresos],
+                                backgroundColor: 'rgba(56, 189, 248, 0.8)',
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Costo IA (Gupshup+Gemini)',
+                                data: [costoChatbot],
+                                backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Costo Meta (Plantillas)',
+                                data: [costoMkt],
+                                backgroundColor: 'rgba(244, 63, 94, 0.9)',
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Ganancia Limpia',
+                                data: [Math.max(0, ganancia)],
+                                backgroundColor: ganancia >= 0 ? 'rgba(52, 211, 153, 0.8)' : 'rgba(244, 63, 94, 0.8)',
+                                borderRadius: 6
+                            }
+                        ]
                     },
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            grid: { color: 'rgba(255,255,255,0.1)' },
-                            ticks: { color: '#cbd5e1', callback: (val) => '$' + val }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#cbd5e1' } },
+                            tooltip: { mode: 'index', intersect: false }
                         },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#cbd5e1' }
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: { color: '#cbd5e1', callback: (val) => '$' + val }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#cbd5e1' }
+                            }
                         }
                     }
-                }
-            });
+                });
+            } catch(e) {
+                console.error("Error graficando", e);
+            }
         }
 
         loadPreset();
