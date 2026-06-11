@@ -72,33 +72,26 @@
                 <div class="glass-panel p-4 sm:p-6">
                     <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-sky-400">2. Envíos Extras (Marketing y Plantillas)</h2>
                     <p class="text-xs text-slate-400 mb-4">¿Cuántos mensajes enviará el cliente fuera de su cuota principal?</p>
-                    
-                    <div class="mb-4">
-                        <label class="block text-xs text-slate-400 mb-2">Tipo de Plantilla WhatsApp</label>
-                        <select id="tipoPlantilla" onchange="updateTemplateType()" class="w-full">
-                            <option value="marketing" data-cost="0.075" data-price="0.085" selected>Marketing (Promociones, Ofertas)</option>
-                            <option value="utility" data-cost="0.035" data-price="0.045">Utility / Utilidad (Actualizaciones, Recibos)</option>
-                            <option value="authentication" data-cost="0.03" data-price="0.04">Autenticación (OTPs, Códigos)</option>
-                            <option value="service" data-cost="0.0" data-price="0.0">Servicio (Conversaciones de 24h, Gratis)</option>
-                        </select>
-                    </div>
 
                     <div class="mb-4">
-                        <label class="block text-sm font-semibold mb-2" id="mensajesMktLabel">0 Plantillas de Marketing</label>
+                        <label class="block text-sm font-semibold mb-2" id="mensajesMktLabel">0 Plantillas</label>
                         <input type="range" id="usoMktSlider" min="0" max="50000" step="100" value="0" class="w-full" oninput="updateMktSlider()">
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-xs text-slate-400 mb-2">¿Cómo se le cobran al cliente?</label>
-                        <select id="estrategiaCobro" onchange="calculate()">
-                            <option value="extra" id="opcionExtraCobro" selected>Se facturan extra (Tarifa oficial $0.085 c/u)</option>
-                            <option value="incluido">Se los regalo (Asumo yo el costo Meta)</option>
+                        <select id="estrategiaCobro" onchange="updateCobroStrategy()">
+                            <option value="marketing" data-cost="0.075" data-price="0.085" selected>Se facturan extra (Tarifa Marketing $0.085 c/u)</option>
+                            <option value="utility" data-cost="0.035" data-price="0.045">Se facturan extra (Tarifa Utilidad $0.045 c/u)</option>
+                            <option value="authentication" data-cost="0.03" data-price="0.04">Se facturan extra (Tarifa Autenticación $0.040 c/u)</option>
+                            <option value="service" data-cost="0.0" data-price="0.0">Se facturan extra (Conversación de Servicio $0.00 c/u)</option>
+                            <option value="incluido" data-cost="0.0" data-price="0.0">Se los regalo (Asumo yo el costo Meta)</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="glass-panel p-4 sm:p-6">
-                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-orange-400">3. Costos Internos Reales</h2>
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-orange-400">3. Costos por Mensajes</h2>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div>
@@ -172,29 +165,25 @@
 
         function updateMktSlider() {
             const val = document.getElementById('usoMktSlider').value;
-            const select = document.getElementById('tipoPlantilla');
-            const tipo = select ? select.options[select.selectedIndex].text.split(' ')[0] : 'Marketing';
-            document.getElementById('mensajesMktLabel').innerText = `${parseInt(val).toLocaleString()} Plantillas de ${tipo}`;
+            const select = document.getElementById('estrategiaCobro');
+            
+            let tipo = 'Plantillas';
+            if (select.value === 'marketing') tipo = 'Plantillas de Marketing';
+            else if (select.value === 'utility') tipo = 'Plantillas de Utilidad';
+            else if (select.value === 'authentication') tipo = 'Plantillas de Autenticación';
+            else if (select.value === 'service') tipo = 'Conversaciones de Servicio';
+            
+            document.getElementById('mensajesMktLabel').innerText = `${parseInt(val).toLocaleString()} ${tipo}`;
             calculate();
         }
 
-        function updateTemplateType() {
-            const select = document.getElementById('tipoPlantilla');
-            const option = select.options[select.selectedIndex];
-            const costoInterno = option.getAttribute('data-cost');
-            const precioVenta = option.getAttribute('data-price');
-
-            // Actualizar costo interno (Por Mensaje)
-            document.getElementById('costoMkt').value = costoInterno;
-
-            // Actualizar el texto del select de cobro
-            const textoCobro = parseFloat(precioVenta) === 0 ? 
-                'Gratis (Sin costo oficial)' : 
-                `Se facturan extra (Tarifa oficial $${precioVenta} c/u)`;
-            
-            document.getElementById('opcionExtraCobro').innerText = textoCobro;
-            
-            // Actualizar etiqueta del slider
+        function updateCobroStrategy() {
+            const selectCobro = document.getElementById('estrategiaCobro');
+            if (selectCobro.value !== 'incluido') {
+                const optCobro = selectCobro.options[selectCobro.selectedIndex];
+                const costoInterno = parseFloat(optCobro.getAttribute('data-cost')) || 0;
+                document.getElementById('costoMkt').value = costoInterno;
+            }
             updateMktSlider();
         }
 
@@ -216,10 +205,12 @@
             const costosTotales = costoChatbotTot + costoMktTot;
 
             let ingresosExtra = 0;
-            if (estrategia === 'extra') {
-                const selectTpl = document.getElementById('tipoPlantilla');
-                const optTpl = selectTpl ? selectTpl.options[selectTpl.selectedIndex] : null;
-                const tarifaExtra = optTpl ? parseFloat(optTpl.getAttribute('data-price')) : 0.085;
+            const selectCobro = document.getElementById('estrategiaCobro');
+            const estrategia = selectCobro.value;
+            
+            if (estrategia !== 'incluido') {
+                const optCobro = selectCobro.options[selectCobro.selectedIndex];
+                const tarifaExtra = parseFloat(optCobro.getAttribute('data-price')) || 0;
                 ingresosExtra = msgsMkt * tarifaExtra;
             }
 
