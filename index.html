@@ -70,16 +70,16 @@
                 </div>
 
                 <div class="glass-panel p-4 sm:p-6">
-                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-sky-400">2. Envíos Extra de Plantillas (Marketing, Utilidad, etc.)</h2>
-                    <p class="text-xs text-slate-400 mb-4">¿Cuántos mensajes enviará el cliente fuera de su cuota de IA?</p>
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-sky-400">2. Envíos Extras (Marketing y Plantillas)</h2>
+                    <p class="text-xs text-slate-400 mb-4">¿Cuántos mensajes enviará el cliente fuera de su cuota principal?</p>
                     
                     <div class="mb-4">
                         <label class="block text-xs text-slate-400 mb-2">Tipo de Plantilla WhatsApp</label>
-                        <select id="tipoPlantilla" onchange="updateTemplateType()">
+                        <select id="tipoPlantilla" onchange="updateTemplateType()" class="w-full">
                             <option value="marketing" data-cost="0.075" data-price="0.085" selected>Marketing (Promociones, Ofertas)</option>
-                            <option value="utility" data-cost="0.035" data-price="0.045">Utilidad (Actualizaciones, Notificaciones)</option>
+                            <option value="utility" data-cost="0.035" data-price="0.045">Utility / Utilidad (Actualizaciones, Recibos)</option>
                             <option value="authentication" data-cost="0.03" data-price="0.04">Autenticación (OTPs, Códigos)</option>
-                            <option value="service" data-cost="0.0" data-price="0.0">Servicio (Conversaciones 24h, Gratis)</option>
+                            <option value="service" data-cost="0.0" data-price="0.0">Servicio (Conversaciones de 24h, Gratis)</option>
                         </select>
                     </div>
 
@@ -98,16 +98,16 @@
                 </div>
 
                 <div class="glass-panel p-4 sm:p-6">
-                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-orange-400">3. Costos Internos (Por Mensaje)</h2>
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-orange-400">3. Costos Internos Reales</h2>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">Costo Chatbot/IA</label>
+                            <label class="block text-xs text-slate-400 mb-1">Costo por mensaje (IA)</label>
                             <input type="number" id="costoChatbot" value="0.0019" step="0.0001" oninput="calculate()">
                             <span class="text-[10px] text-slate-500">Gupshup + GPT-4.1 Mini</span>
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">Costo Meta (Plantilla)</label>
+                            <label class="block text-xs text-slate-400 mb-1">Costo por mensaje (Plantilla)</label>
                             <input type="number" id="costoMkt" value="0.075" step="0.001" oninput="calculate()">
                             <span class="text-[10px] text-slate-500">Meta + Gupshup</span>
                         </div>
