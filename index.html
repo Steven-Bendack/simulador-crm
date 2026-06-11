@@ -125,9 +125,13 @@
                     </div>
                     <div class="glass-panel p-4 md:p-6 text-center border-t-4 border-emerald-500 relative overflow-hidden group col-span-2 md:col-span-1 flex flex-col justify-center">
                         <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                        <h3 class="text-slate-400 text-xs md:text-sm mb-1 md:mb-2">Ganancia Limpia</h3>
+                        <h3 class="text-slate-400 text-xs md:text-sm mb-1 md:mb-2">Ganancia Limpia (Total)</h3>
                         <p class="text-3xl md:text-4xl font-bold text-emerald-400" id="resGanancia">$ 0.00</p>
-                        <p class="text-xs md:text-sm font-semibold mt-1 md:mt-2" id="resMargen">Margen: 0%</p>
+                        <div class="flex justify-center gap-4 mt-2 text-[10px] md:text-xs font-medium">
+                            <span class="text-emerald-300" id="resGananciaPlan" title="Ganancia solo de la suscripción">Plan: $0.00</span>
+                            <span class="text-emerald-300" id="resGananciaExtras" title="Ganancia sumada por las plantillas">Extras: +$0.00</span>
+                        </div>
+                        <p class="text-xs md:text-sm font-semibold mt-2" id="resMargen">Margen Global: 0%</p>
                     </div>
                 </div>
 
@@ -234,6 +238,9 @@
                 const ingresosTotales = precioBase + ingresosExtra;
                 const ganancia = ingresosTotales - costosTotales;
                 const margen = ingresosTotales > 0 ? (ganancia / ingresosTotales) * 100 : 0;
+                
+                const gananciaPlan = precioBase - costoChatbotTot;
+                const gananciaExtras = ingresosExtra - costoMktTot;
 
                 // Actualizar UI
                 document.getElementById('resIngresos').innerText = formatMoney(ingresosTotales);
@@ -245,14 +252,22 @@
                 const eGanancia = document.getElementById('resGanancia');
                 const eMargen = document.getElementById('resMargen');
                 eGanancia.innerText = formatMoney(ganancia);
-                eMargen.innerText = `Margen: ${margen.toFixed(1)}%`;
+                
+                document.getElementById('resGananciaPlan').innerText = `Plan: ${formatMoney(gananciaPlan)}`;
+                document.getElementById('resGananciaExtras').innerText = `Extras: ${gananciaExtras >= 0 ? '+' : ''}${formatMoney(gananciaExtras)}`;
+                
+                eMargen.innerText = `Margen Global: ${margen.toFixed(1)}%`;
 
                 if (ganancia >= 0) {
                     eGanancia.classList.replace('text-rose-400', 'text-emerald-400');
                     eMargen.classList.replace('text-rose-400', 'text-emerald-400');
+                    document.getElementById('resGananciaPlan').classList.replace('text-rose-300', 'text-emerald-300');
+                    document.getElementById('resGananciaExtras').classList.replace('text-rose-300', 'text-emerald-300');
                 } else {
                     eGanancia.classList.replace('text-emerald-400', 'text-rose-400');
                     eMargen.classList.replace('text-emerald-400', 'text-rose-400');
+                    document.getElementById('resGananciaPlan').classList.replace('text-emerald-300', 'text-rose-300');
+                    document.getElementById('resGananciaExtras').classList.replace('text-emerald-300', 'text-rose-300');
                 }
 
                 updateChart(ingresosTotales, costoChatbotTot, costoMktTot, ganancia);
