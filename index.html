@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Simulador de Rentabilidad ISSA CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; }
+        .gradient-text { background: linear-gradient(to right, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        input[type="range"] { accent-color: #8b5cf6; width: 100%; min-height: 44px; }
+        input[type="number"], select { 
+            background-color: #1e293b; border: 1px solid #334155; color: white; 
+            padding: 0.75rem 1rem; border-radius: 0.75rem; width: 100%; outline: none; 
+            font-size: 16px; /* Prevents auto-zoom on iOS */
+            min-height: 48px; /* Large touch target for fingers */
+            transition: all 0.2s ease;
+            appearance: none; -webkit-appearance: none;
+        }
+        select {
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.2rem;
+            padding-right: 3rem;
+            cursor: pointer;
+        }
+        input[type="number"]:focus, select:focus { 
+            border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 sm:p-4 md:p-8 overflow-x-hidden" style="padding-bottom: max(1rem, env(safe-area-inset-bottom)); padding-left: max(0.75rem, env(safe-area-inset-left)); padding-right: max(0.75rem, env(safe-area-inset-right));">
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-8 md:mb-10">
+            <h1 class="text-2xl sm:text-3xl md:text-5xl font-bold mb-3 md:mb-4 gradient-text leading-tight">Simulador de Rentabilidad ISSA CRM</h1>
+            <p class="text-sm md:text-base text-slate-400 px-2">Calcula ganancias reales según tu Catálogo Oficial (Mayo 2026)</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
+            <!-- Controles (Izquierda) -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <div class="glass-panel p-4 sm:p-6">
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-purple-400">1. Selecciona tu Plan ISSA</h2>
+                    
+                    <div class="mb-4">
+                        <select id="planPreset" onchange="loadPreset()">
+                            <option value="11" selected>Emprendedor Lite ($11 / 350 resp. IA)</option>
+                            <option value="14">Emprendedor Plus ($14.99 / 750 resp. IA)</option>
+                            <option value="24">Emprendedor Pro ($24.99 / 1,500 resp. IA)</option>
+                            <option value="49">Negocio Local ($49.99 / 3,000 resp. IA)</option>
+                            <option value="200">Flex ($200.00 / 30,000 interacciones)</option>
+                            <option value="499">Enterprise ($499.00 / 60,000 interacciones)</option>
+                            <option value="custom">Personalizado / Manual</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Cuota Mensajes</label>
+                            <input type="number" id="totalInteracciones" value="350" oninput="calculate()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Precio Cobrado ($)</label>
+                            <input type="number" id="precioCobrado" value="11" step="0.01" oninput="calculate()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 sm:p-6">
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-sky-400">2. Envíos Extra de Marketing (Campañas)</h2>
+                    <p class="text-xs text-slate-400 mb-4">¿Cuántos mensajes masivos enviará el cliente fuera de su cuota de IA?</p>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold mb-2" id="mensajesMktLabel">0 Mensajes de Marketing</label>
+                        <input type="range" id="usoMktSlider" min="0" max="50000" step="100" value="0" class="w-full" oninput="updateMktSlider()">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs text-slate-400 mb-2">¿Cómo se le cobran al cliente?</label>
+                        <select id="estrategiaCobro" onchange="calculate()">
+                            <option value="extra" selected>Se facturan extra (Tarifa oficial $0.085 c/u)</option>
+                            <option value="incluido">Se los regalo (Asumo yo el costo Meta)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 sm:p-6">
+                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-orange-400">3. Costos Internos Reales</h2>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Costo Chatbot/IA</label>
+                            <input type="number" id="costoChatbot" value="0.0019" step="0.0001" oninput="calculate()">
+                            <span class="text-[10px] text-slate-500">Gupshup + GPT-4.1 Mini</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Costo Mkt (Ecuador)</label>
+                            <input type="number" id="costoMkt" value="0.075" step="0.001" oninput="calculate()">
+                            <span class="text-[10px] text-slate-500">Meta + Gupshup</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Resultados (Derecha) -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
+                    <div class="glass-panel p-3 md:p-6 text-center border-t-4 border-sky-500 flex flex-col justify-center">
+                        <h3 class="text-slate-400 text-[11px] md:text-sm mb-1">Ingresos Totales</h3>
+                        <p class="text-xl md:text-3xl font-bold text-sky-400" id="resIngresos">$ 0.00</p>
+                        <p class="text-[9px] md:text-xs text-slate-500 mt-1" id="resIngresosDetalle">Plan + Extras</p>
+                    </div>
+                    <div class="glass-panel p-3 md:p-6 text-center border-t-4 border-rose-500 flex flex-col justify-center">
+                        <h3 class="text-slate-400 text-[11px] md:text-sm mb-1">Costos a Pagar</h3>
+                        <p class="text-xl md:text-3xl font-bold text-rose-400" id="resCostos">$ 0.00</p>
+                        <p class="text-[9px] md:text-xs text-slate-500 mt-1" id="resCostosDetalle">IA + Meta API</p>
+                    </div>
+                    <div class="glass-panel p-4 md:p-6 text-center border-t-4 border-emerald-500 relative overflow-hidden group col-span-2 md:col-span-1 flex flex-col justify-center">
+                        <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                        <h3 class="text-slate-400 text-xs md:text-sm mb-1 md:mb-2">Ganancia Limpia</h3>
+                        <p class="text-3xl md:text-4xl font-bold text-emerald-400" id="resGanancia">$ 0.00</p>
+                        <p class="text-xs md:text-sm font-semibold mt-1 md:mt-2" id="resMargen">Margen: 0%</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 md:p-6">
+                    <h3 class="text-base md:text-lg font-semibold mb-4 md:mb-6 text-white text-center">Gráfica de Rentabilidad por Cliente</h3>
+                    <div class="h-[300px] md:h-80 w-full relative">
+                        <canvas id="profitChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chartInstance = null;
+
+        const presets = {
+            "11": { msg: 350, price: 11 },
+            "14": { msg: 750, price: 14.99 },
+            "24": { msg: 1500, price: 24.99 },
+            "49": { msg: 3000, price: 49.99 },
+            "200": { msg: 30000, price: 200 },
+            "499": { msg: 60000, price: 499 }
+        };
+
+        function loadPreset() {
+            const val = document.getElementById('planPreset').value;
+            if (val !== 'custom' && presets[val]) {
+                document.getElementById('totalInteracciones').value = presets[val].msg;
+                document.getElementById('precioCobrado').value = presets[val].price;
+            }
+            calculate();
+        }
+
+        function updateMktSlider() {
+            const val = document.getElementById('usoMktSlider').value;
+            document.getElementById('mensajesMktLabel').innerText = `${parseInt(val).toLocaleString()} Mensajes de Marketing`;
+            calculate();
+        }
+
+        function formatMoney(num) {
+            return '$ ' + num.toFixed(2);
+        }
+
+        function calculate() {
+            const msgsChatbot = parseFloat(document.getElementById('totalInteracciones').value) || 0;
+            const precioBase = parseFloat(document.getElementById('precioCobrado').value) || 0;
+            const msgsMkt = parseFloat(document.getElementById('usoMktSlider').value) || 0;
+            
+            const estrategia = document.getElementById('estrategiaCobro').value;
+            const costoMktUni = parseFloat(document.getElementById('costoMkt').value) || 0;
+            const costoChatbotUni = parseFloat(document.getElementById('costoChatbot').value) || 0;
+
+            const costoChatbotTot = msgsChatbot * costoChatbotUni;
+            const costoMktTot = msgsMkt * costoMktUni;
+            const costosTotales = costoChatbotTot + costoMktTot;
+
+            let ingresosExtra = 0;
+            if (estrategia === 'extra') {
+                ingresosExtra = msgsMkt * 0.085; // Tarifa oficial extra
+            }
+
+            const ingresosTotales = precioBase + ingresosExtra;
+            const ganancia = ingresosTotales - costosTotales;
+            const margen = ingresosTotales > 0 ? (ganancia / ingresosTotales) * 100 : 0;
+
+            // Actualizar UI
+            document.getElementById('resIngresos').innerText = formatMoney(ingresosTotales);
+            document.getElementById('resIngresosDetalle').innerText = `Plan: ${formatMoney(precioBase)} | Extras: ${formatMoney(ingresosExtra)}`;
+            
+            document.getElementById('resCostos').innerText = formatMoney(costosTotales);
+            document.getElementById('resCostosDetalle').innerText = `IA: ${formatMoney(costoChatbotTot)} | Meta: ${formatMoney(costoMktTot)}`;
+            
+            const eGanancia = document.getElementById('resGanancia');
+            const eMargen = document.getElementById('resMargen');
+            eGanancia.innerText = formatMoney(ganancia);
+            eMargen.innerText = `Margen: ${margen.toFixed(1)}%`;
+
+            if (ganancia >= 0) {
+                eGanancia.classList.replace('text-rose-400', 'text-emerald-400');
+                eMargen.classList.replace('text-rose-400', 'text-emerald-400');
+            } else {
+                eGanancia.classList.replace('text-emerald-400', 'text-rose-400');
+                eMargen.classList.replace('text-emerald-400', 'text-rose-400');
+            }
+
+            updateChart(ingresosTotales, costoChatbotTot, costoMktTot, ganancia);
+        }
+
+        function updateChart(ingresos, costoChatbot, costoMkt, ganancia) {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Suscripción y Gastos del Cliente'],
+                    datasets: [
+                        {
+                            label: 'Ingresos Cobrados',
+                            data: [ingresos],
+                            backgroundColor: 'rgba(56, 189, 248, 0.8)',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Costo IA (Gupshup+Gemini)',
+                            data: [costoChatbot],
+                            backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Costo Meta (Marketing)',
+                            data: [costoMkt],
+                            backgroundColor: 'rgba(244, 63, 94, 0.9)',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Ganancia Limpia',
+                            data: [Math.max(0, ganancia)],
+                            backgroundColor: ganancia >= 0 ? 'rgba(52, 211, 153, 0.8)' : 'rgba(244, 63, 94, 0.8)',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#cbd5e1' } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#cbd5e1', callback: (val) => '$' + val }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#cbd5e1' }
+                        }
+                    }
+                }
+            });
+        }
+
+        loadPreset();
+    </script>
+</body>
+</html>
